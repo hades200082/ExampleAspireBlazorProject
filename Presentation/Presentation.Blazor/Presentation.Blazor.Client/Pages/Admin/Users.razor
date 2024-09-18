@@ -1,0 +1,214 @@
+﻿@page "/admin/users"
+@using Presentation.Blazor.Client.Components.Dialogs
+@using Presentation.Blazor.Client.Services.Api.Models
+@using Shared.Abstractions
+@using Shared.Extensions
+@inherits BaseAdminPage<Users>
+@inject IUserProfileClient UserProfileClient
+@inject IRoleClient RoleClient
+
+<PageTitle>Admin | User Management</PageTitle>
+
+<SectionContent SectionName="PageHeading">
+    <MudText Typo="@Typo.h3" HtmlTag="h1">User Management</MudText>
+</SectionContent>
+
+<MudPaper Class="tw-p-8 tw-space-y-8">
+    @if (_users is not null)
+    {
+        if (_users.Items.Any())
+        {
+            <MudGrid>
+                @foreach (var user in _users.Items)
+                {
+                    <MudItem xs="12" md="6" lg="4" xl="3">
+                        <MudCard>
+                            <MudCardHeader Class="tw-flex tw-flex-col tw-items-center">
+                                <Avatar Name="@user.Name" Email="@user.Email" Size="@Size.Large"/>
+                                <MudText Typo="@Typo.h6" HtmlTag="div">@user.Name</MudText>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudText Typo="@Typo.body1">ID: @user.Id</MudText>
+                                <MudText Typo="@Typo.body1">Email: @user.Email</MudText>
+                            </MudCardContent>
+                            @if (_showActionButtons)
+                            {
+                                <MudCardActions>
+                                    <AuthorizeView Policy="UserProfile:ManageRoles">
+                                        <MudButton Variant="@Variant.Text" Color="@Color.Primary" StartIcon="@Icons.Material.Filled.Groups3" OnClick="@(() => OpenRolesDialog(user))">Set Roles</MudButton>
+                                    </AuthorizeView>
+                                    <AuthorizeView Policy="UserProfile:Delete">
+                                        <MudSpacer/>
+                                        <MudButton StartIcon="@Icons.Material.Filled.Delete" OnClick="() => DeleteUser(user.Id)" Color="Color.Error" Disabled="@(!string.IsNullOrEmpty(_currentUserId) && user.Id == _currentUserId)">Delete</MudButton>
+                                    </AuthorizeView>
+                                </MudCardActions>
+                            }
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Typo="@Typo.body1">No users found</MudText>
+        }
+    }
+    else
+    {
+        // Loading state
+        <MudGrid>
+            @for (var i = 0; i < 3; i++)
+            {
+                <MudItem xs="12" md="6" lg="4" xl="3">
+                    <MudCard>
+                        <MudCardHeader Class="tw-flex tw-flex-col tw-items-center">
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Circle" Class="mud-avatar mud-avatar-large"/>
+                            <MudSkeleton Animation="Animation.Wave" Height="32px" Width="150px"/>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudSkeleton Animation="Animation.Wave" Height="32px" Width="150px"/>
+                            <MudSkeleton Animation="Animation.Wave" Height="32px" Width="150px"/>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudSkeleton Animation="Animation.Wave" Height="36.5px" Width="100px"/>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (_users?.TotalPages > 1)
+    {
+        <MudDivider DividerType="@DividerType.Middle"/>
+        <Pagination Count="@_users.TotalPages" Size="@Size.Large" CurrentPage="@_currentPage" SelectedChanged="PaginationSelectedChanged"/>
+    }
+</MudPaper>
+
+@code {
+    
+    private const int PageSize = 9;
+    private int _currentPage = 1;
+
+    private IPagedDataSet<UserProfile>? _users;
+    private List<Role> _roles = [];
+
+    private bool _showActionButtons;
+    private string? _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += HandleNavigation;
+        try
+        { 
+            _showActionButtons = await HasPermission("UserProfile:ManageRoles") || await HasPermission("UserProfile:Delete");
+
+            GetQueryStringValues();
+            _users = await UserProfileClient.GetAsync(_currentPage, PageSize, null, null, ComponentDetached);
+            await LoadRoles();
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationState is not null)
+        {
+            var authState = await AuthenticationState;
+            _currentUserId = authState.User.GetUserId();
+        }
+    }
+
+    private void HandleNavigation(object? sender, LocationChangedEventArgs e)
+    {
+        GetQueryStringValues();
+        StateHasChanged();
+    }
+
+    private async Task PaginationSelectedChanged(int page)
+    {
+        NavigationManager.NavigateTo($"/admin/users?page={page}");
+    }
+
+    void GetQueryStringValues()
+    {
+        if (!NavigationManager.TryGetQueryString("page", out _currentPage))
+            _currentPage = 1;
+    }
+
+    private async Task OpenRolesDialog(UserProfile user)
+    {
+        var parameters = new DialogParameters<UserRoleSelectionDialog>
+        {
+            {x => x.UserProfile, user},
+            {x => x.Roles, _roles}
+        };
+
+        _ = await DialogService.ShowAsync<UserRoleSelectionDialog>($"Select roles for {user.Name}", parameters, GlobalDialogOptions);
+    }
+
+    private async Task LoadRoles()
+    {
+        var allRoles = new List<Role>();
+        var page = 1;
+        try
+        {
+            var roles = await RoleClient.GetAsync(page, 100, null, "Description asc");
+            allRoles.AddRange(roles.Items);
+
+            while (page < roles.TotalPages)
+            {
+                roles = await RoleClient.GetAsync(++page, 100, null, "Description asc");
+                allRoles.AddRange(roles.Items);
+            }
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+        }
+
+        _roles = allRoles;
+    }
+    
+
+    private async Task DeleteUser(string userId)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            {x => x.Color, Color.Error},
+            {x => x.ButtonText, "Confirm"},
+            {x => x.ContentText, "Are you sure you want to delete this user? This cannot be undone."}
+        };
+        var deleteDialog = await DialogService.ShowAsync<ConfirmDialog>("Delete User?", parameters, GlobalDialogOptions);
+        var result = await deleteDialog.Result;
+        if (result is {Canceled: false})
+        {
+            try
+            {
+                await UserProfileClient.DeleteAsync(userId, ComponentDetached);
+                _users = await UserProfileClient.GetAsync(_currentPage, PageSize, null, null, ComponentDetached);
+                Snackbar.Add(
+                    @<div>
+                        <h3>User queued for deletion</h3>
+                        <p>The user will be fully deleted within the next 30 minutes. This cannot be stopped.</p>
+                    </div>,
+                    Severity.Success, key: $"UserDelete-{userId}");
+                StateHasChanged();
+            }
+            catch(ApiResponseException ex)
+            {
+                HandleApiException(ex);
+            }
+        }
+    }
+
+    public override void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleNavigation;
+        base.Dispose();
+    }
+
+}

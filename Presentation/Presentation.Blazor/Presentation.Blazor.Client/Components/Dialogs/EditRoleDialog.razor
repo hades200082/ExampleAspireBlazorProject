@@ -1,0 +1,88 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using Presentation.Blazor.Client.Services.Api.Models
+@inherits ComponentBase<AddRoleDialog>
+@inject IRoleClient RoleClient
+
+<EditForm Model="@_model" OnValidSubmit="SaveRole">
+    <MudDialog Class="tw-w-[95vw] md:tw-w-[50vw] lg:tw-w-[33vw] xl:tw-w-[25vw] 2xl:tw-w-[20vw]">
+        <DialogContent>
+            <DataAnnotationsValidator/>
+            <MudTextField Label="Role name" @bind-Value="_model.Description" For="@(() => _model.Description)"/>
+            <MudTextField Label="Codename" HelperText="The codename should have no spaces, numbers or special characters and is used by the app to reference the role in user permissions." @bind-Value="_model.Name" For="@(() => _model.Name)" Disabled="!_enableName"/>
+            <MudSwitch Label="Enable edit code name" @bind-Value="_enableName" />
+            @if (_enableName)
+            {
+                <MudAlert Severity="Severity.Warning">
+                    Editing the code name of a role may cause odd behaviour for people currently logged into the application
+                </MudAlert>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Disabled="_saving" ButtonType="ButtonType.Submit">
+                @if (_saving)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Sync" Class="tw-animate-spin"/>
+                }
+                else
+                {
+                    @:Save
+                }
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+
+    [CascadingParameter]
+    public required MudDialogInstance MudDialog { get; set; }
+    
+    [Parameter]
+    public required Role Role { get; set; }
+    
+    private bool _saving;
+    private bool _enableName;
+
+    private EditRoleForm _model = new();
+
+    protected override void OnParametersSet()
+    {
+        _model.Name = Role.Name;
+        _model.Description = Role.Description;
+    }
+
+    private async Task SaveRole(EditContext editContext)
+    {
+        _saving = true;
+        var model = (EditRoleForm)editContext.Model;
+
+        try
+        {
+            await RoleClient.UpdateAsync(Role.Id, Role with {Name = model.Name, Description = model.Description});
+            MudDialog.Close();
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+            _saving = false;
+        }
+        finally
+        {
+            _saving = false;   
+        }
+    }
+
+    class EditRoleForm
+    {
+        [Required]
+        [Display(Name = "Role display name")]
+        public string Description { get; set; }
+
+        [Required]
+        [Display(Name = "Code name")]
+        [RegularExpression("[A-Za-z]+", ErrorMessage = "Name must contain only letters and no spaces")]
+        public string Name { get; set; }
+    }
+
+}

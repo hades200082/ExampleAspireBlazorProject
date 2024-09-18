@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="8.2.5" />
+      <PackageReference Include="MassTransit.RabbitMQ" Version="8.2.5" />
+      <PackageReference Include="MassTransit.SqlTransport.PostgreSQL" Version="8.2.5" />
+      <PackageReference Include="MassTransit.SqlTransport.SqlServer" Version="8.2.5" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Microsoft.Extensions.Configuration.Binder" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Shared\Shared.Enums\Shared.Enums.csproj" />
+    </ItemGroup>
+
+</Project>

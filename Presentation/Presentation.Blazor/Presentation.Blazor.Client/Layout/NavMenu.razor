@@ -1,0 +1,45 @@
+﻿@inherits Presentation.Blazor.Client.Components.ComponentBase<NavMenu>
+
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Home
+    </MudNavLink>
+    <AuthorizeView>
+        <MudNavLink Href="/user-claims" Icon="@Icons.Material.Filled.LockPerson">
+            User Claims
+        </MudNavLink>
+    </AuthorizeView>
+    @if (_showAdminMenu)
+    { 
+    <AuthorizeView Context="adminMenuContext">
+        <MudNavGroup Title="Admin" Expanded="true" Icon="@Icons.Material.Filled.AdminPanelSettings">
+            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavGroup Title="Security" Icon="@Icons.Material.Filled.Shield">
+                <AuthorizeView Policy="UserProfile:Read">
+                    <MudNavLink Href="/admin/users" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">User Management</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="Role:Read">
+                    <MudNavLink Href="/admin/roles" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Groups3">Roles &amp; Permissions</MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        </MudNavGroup>
+    </AuthorizeView>
+    }
+</MudNavMenu>
+
+@code
+{
+    private bool _showAdminMenu = false;
+    private bool _showSecurityMenu = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _showAdminMenu =
+            await HasPermission("UserProfile:Read") ||
+            await HasPermission("Role:Read");
+
+        _showSecurityMenu =
+            await HasPermission("UserProfile:Read") ||
+            await HasPermission("Role:Read");
+    }
+}

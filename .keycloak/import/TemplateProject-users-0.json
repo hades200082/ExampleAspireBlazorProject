@@ -1,0 +1,81 @@
+{
+  "realm" : "TemplateProject",
+  "users" : [ {
+    "id" : "088f5881-4dae-45b6-b3a1-a3c9d15c806c",
+    "username" : "service-account-admin-cli",
+    "emailVerified" : false,
+    "createdTimestamp" : 1725361947591,
+    "enabled" : true,
+    "totp" : false,
+    "serviceAccountClientId" : "admin-cli",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-templateprojecttester" ],
+    "clientRoles" : {
+      "admin-cli" : [ "uma_protection" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "bad20793-22cd-4892-9f86-e60c15679e7d",
+    "username" : "service-account-templateproject-api",
+    "emailVerified" : false,
+    "createdTimestamp" : 1719870487191,
+    "enabled" : true,
+    "totp" : false,
+    "serviceAccountClientId" : "TemplateProject-api",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-templateprojecttester" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "4592defe-abdf-43bd-833d-4dede705b5aa",
+    "username" : "test-user-1@test.com",
+    "firstName" : "Admin",
+    "lastName" : "User",
+    "email" : "test-user-1@test.com",
+    "emailVerified" : true,
+    "createdTimestamp" : 1719870764540,
+    "enabled" : true,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "db24fdfa-81af-4c8a-8bf8-f5d155582f32",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1719870786217,
+      "secretData" : "{\"value\":\"ja3qosrgvehC4zXaB00IPUwWkxgzXma9Pf1dnYDxTSoKVsJsvLn5Mn+wrJmSPs0+JoLxSCO3wvHKjpi5VpFCHQ==\",\"salt\":\"/hDIn+lxU5FFNqA2wdQWVQ==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-templateprojecttester" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "ef8ba546-2efc-4347-b81e-4a0210b9b7a3",
+    "username" : "test-user-2@test.com",
+    "firstName" : "Test",
+    "lastName" : "User",
+    "email" : "test-user-2@test.com",
+    "emailVerified" : true,
+    "createdTimestamp" : 1720208504581,
+    "enabled" : true,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "6918d956-6353-4c01-b585-0902bd1c0964",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1720208522120,
+      "secretData" : "{\"value\":\"uxARBJFK00tECL0ypznGC46JvbRdX61jOAbN15zaMFqxMjqYTsBmRmGnMbwEex7yFavYZZv44FNOXfgZZchaQQ==\",\"salt\":\"4t0k8nqWsnSOatkxY2ylPA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-templateprojecttester" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  } ]
+}

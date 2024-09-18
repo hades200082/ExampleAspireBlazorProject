@@ -1,0 +1,26 @@
+﻿@using Shared.Extensions
+<MudAvatar Rounded="true" Size="Size" Variant="Variant">
+    <MudImage Src="@_avatar" Alt="@Name" />
+</MudAvatar>
+
+@code {
+    [Parameter]
+    public string? Name { get; set; }
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public Size Size { get; set; } = Size.Medium;
+
+    [Parameter]
+    public Variant Variant { get; set; } = Variant.Outlined;
+
+    private string _avatar = "https://gravatar.com/avatar/b6feae9867faebbb069795048f6caa830c8f60debb5023a67fc25b0a4cb4eefb?d=mp";
+    protected override void OnParametersSet()
+    {
+        var hash = Email?.ToSha256() ?? "b6feae9867faebbb069795048f6caa830c8f60debb5023a67fc25b0a4cb4eefb";
+        _avatar = $"https://gravatar.com/avatar/{hash}?d={Uri.EscapeDataString($"https://api.dicebear.com/9.x/thumbs/png/seed={hash}")}";
+        StateHasChanged();
+    }
+    
+}

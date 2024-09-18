@@ -1,0 +1,87 @@
+﻿@using System.Security.Claims
+@using Shared.Extensions
+@inherits LayoutComponentBase
+<MudThemeProvider/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <AuthorizeView>
+        <Authorized>
+            <MudAppBar Elevation="3">
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => ToggleNav())"/>
+                </MudHidden>
+                <MudText Typo="Typo.h5" Class="ml-3">TemplateProject</MudText>
+                <MudSpacer/>
+                <MudMenu>
+                    <ActivatorContent>
+                        <Avatar Name="@_user?.GetName()" Email="@_user?.GetEmail()"/>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem>
+                            <LogInOrOut/>
+                        </MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </MudAppBar>
+            <MudDrawer @bind-Open="@_navOpen" ClipMode="DrawerClipMode.Always" Elevation="4">
+                <NavMenu/>
+            </MudDrawer>
+            <MudMainContent Class="tw-bg-gray-200 tw-min-h-screen">
+                <MudPaper Elevation="3" Square="true" Outlined="false" Class="tw-p-8 tw-flex tw-flex-row">
+                    <SectionOutlet SectionName="PageHeading"/>
+                    <MudSpacer/>
+                    <SectionOutlet SectionName="PageActions"/>
+                </MudPaper>
+                <div class="tw-p-8">
+                    <ErrorBoundary Context="error">
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                        <ErrorContent>
+                            <MudAlert Variant="Variant.Filled" Severity="Severity.Error">
+                                <MudText Typo="Typo.h4">Error</MudText>
+                                <MudText Typo="Typo.body1">@error.Message</MudText>
+                                <a href="">Reload page</a>
+                            </MudAlert>
+                        </ErrorContent>
+                    </ErrorBoundary>
+                </div>
+            </MudMainContent>
+        </Authorized>
+        <NotAuthorized>
+            @if (context.User.Identity?.IsAuthenticated != true)
+            {
+                <RedirectToLogin/>
+            }
+            else
+            {
+                <h1>403 Forbidden</h1>
+                <p>You're not authorised to access this page.</p>
+                <NavLink href="/">Go to home</NavLink>
+            }
+        </NotAuthorized>
+    </AuthorizeView>
+</MudLayout>
+
+@code{
+    [CascadingParameter] public Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private ClaimsPrincipal? _user;
+
+    private bool _navOpen = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationState is not null)
+            _user = (await AuthenticationState!).User;
+    }
+
+    void ToggleNav()
+    {
+        _navOpen = !_navOpen;
+    }
+
+}

@@ -1,0 +1,5 @@
+﻿/*@tailwind base;*/ /* Disabled the base/reset since MudBlazor already has its own reset */
+@tailwind components;
+@tailwind utilities;
+
+/* add variable for `--mud-typography-default-family` for font-family in addition to tailwind */

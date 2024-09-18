@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+      <PackageReference Include="Serilog" Version="4.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Infrastructure\Authentication\Infrastructure.Authentication.Abstractions\Infrastructure.Authentication.Abstractions.csproj" />
+      <ProjectReference Include="..\..\Infrastructure\Infrastructure.Email\Infrastructure.Email.csproj" />
+      <ProjectReference Include="..\..\Infrastructure\Infrastructure.EntityFrameworkCore\Infrastructure.EntityFrameworkCore.csproj" />
+      <ProjectReference Include="..\..\Infrastructure\Infrastructure.MassTransit\Infrastructure.MassTransit.csproj" />
+      <ProjectReference Include="..\..\Infrastructure\Infrastructure.Storage\Infrastructure.Storage.csproj" />
+      <ProjectReference Include="..\..\Shared\Shared.Exceptions\Shared.Exceptions.csproj" />
+      <ProjectReference Include="..\..\Shared\Shared.Resilience\Shared.Resilience.csproj" />
+      <ProjectReference Include="..\AMQP\Domain.AMQP.MessageContracts\Domain.AMQP.MessageContracts.csproj" />
+      <ProjectReference Include="..\Domain.Entities\Domain.Entities.csproj" />
+    </ItemGroup>
+
+</Project>

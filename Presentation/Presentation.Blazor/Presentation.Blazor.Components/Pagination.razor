@@ -1,0 +1,20 @@
+﻿<div class="tw-flex tw-justify-center">
+    <MudPagination
+        Count="@Count"
+        SelectedChanged="SelectedChanged"
+        ShowFirstButton="@(CurrentPage != 1)"
+        ShowPreviousButton="@(CurrentPage != 1)"
+        ShowLastButton="@(CurrentPage != Count)"
+        ShowNextButton="@(CurrentPage != Count)"
+        Size="Size"
+        BoundaryCount="1"
+        MiddleCount="3"
+        Variant="Variant.Filled"/>
+</div>
+
+@code {
+    [Parameter] public int Count { get; set; }
+    [Parameter] public Size Size { get; set; }
+    [Parameter] public EventCallback<int> SelectedChanged { get; set; }
+    [Parameter] public int CurrentPage { get; set; }
+}

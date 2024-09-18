@@ -1,0 +1,89 @@
+﻿@using Presentation.Blazor.Client.Services.Api.Models
+@inherits ComponentBase<AddRoleDialog>
+@inject IUserProfileClient UserProfileClient
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Wrap="Wrap.Wrap" Justify="Justify.FlexStart" AlignItems="AlignItems.Start">
+            @foreach (var role in Roles)
+            {
+                @if (_rolesSelections is not null)
+                {
+                    <MudSwitch Label="@role.Description" @bind-Value="_rolesSelections[role.Id]" T="bool" Color="Color.Success"/>
+                }
+                else
+                {
+                    <MudSkeleton Animation="Animation.Wave" Width="150" />
+                }
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="@SaveRoles" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Sync" Class="tw-animate-spin"/>
+            }
+            else
+            {
+                @:Save
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code{
+    [CascadingParameter]
+    public required MudDialogInstance MudDialog { get; set; }
+    
+    [Parameter]
+    public required UserProfile UserProfile { get; set; }
+
+    [Parameter]
+    public required List<Role> Roles { get; set; }
+    
+    private Dictionary<Ulid, bool>? _rolesSelections;
+    private bool _saving = false;
+
+    protected override void OnInitialized()
+    {
+        _rolesSelections = Roles.ToDictionary(x => x.Id, x => false);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Load the full user profile
+        var fullProfile = await UserProfileClient.GetAsync(UserProfile.Id);
+
+        // Initialize _rolesSelections based on the user's current roles
+        InitializeRoleSelections(fullProfile?.Roles);
+        
+        StateHasChanged();
+    }
+
+    private void InitializeRoleSelections(UserRole[]? userRoles)
+    {
+        if (userRoles == null) return;
+        
+        _rolesSelections ??= [];
+        foreach (var userRole in userRoles)
+        {
+            _rolesSelections[userRole.Id] = true;
+        }
+    }
+
+    private async Task SaveRoles(MouseEventArgs arg)
+    {
+        _saving = true;
+        var selectedRoleIds = _rolesSelections
+            .Where(x => x.Value)
+            .Select(x => x.Key)
+            .ToArray();
+        
+        await UserProfileClient.UpdateRoles(UserProfile.Id, selectedRoleIds);
+        _saving = false;
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+    private void Cancel() => MudDialog.Cancel();
+}

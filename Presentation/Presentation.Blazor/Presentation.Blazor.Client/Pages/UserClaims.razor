@@ -1,0 +1,67 @@
+﻿@page "/user-claims"
+@using System.Runtime.InteropServices
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Http
+@inherits BasePage<UserClaims>
+
+<PageTitle>User Claims</PageTitle>
+
+<SectionContent SectionName="PageHeading">
+    <MudText Typo="@Typo.h3" HtmlTag="h1">User Claims</MudText>
+</SectionContent>
+
+<MudPaper Class="tw-p-8 tw-space-y-8">
+    <MudText Typo="Typo.body1">
+        This page is a test &amp; diagnostics page to show that user logins and claims are working. It should be removed or hidden from production applications.
+    </MudText>
+
+    @if (claims.Any())
+    {
+        <MudDataGrid Items="@claims">
+            <Columns>
+                <PropertyColumn Property="item => item.Type" Title="Type"/>
+                <PropertyColumn Property="item => item.Value" Title="Value"/>
+            </Columns>
+        </MudDataGrid>
+    }
+</MudPaper>
+
+@code {
+    private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
+
+    [CascadingParameter] public HttpContext? HttpContext { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? renderMode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState == null)
+        {
+            return;
+        }
+
+        var authState = await AuthState;
+        claims = authState.User.Claims;
+
+        if (HttpContext != null)
+        {
+            renderMode = "prerender";
+        }
+        else
+        {
+            if (RuntimeInformation.ProcessArchitecture != Architecture.Wasm)
+            {
+                renderMode = "server"; //the architecture could be x64 depending on your machine.
+            }
+
+            if (RuntimeInformation.ProcessArchitecture == Architecture.Wasm)
+            {
+                renderMode = "wasm";
+            }
+        }
+    }
+
+}

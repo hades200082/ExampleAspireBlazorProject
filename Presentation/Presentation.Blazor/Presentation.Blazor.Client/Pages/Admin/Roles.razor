@@ -1,0 +1,265 @@
+﻿@page "/admin/roles"
+@using HeimGuard
+@using Microsoft.AspNetCore.Authorization
+@using Presentation.Blazor.Client.Components.Dialogs
+@using Presentation.Blazor.Client.Services.Api.Models
+@inherits BaseAdminPage<Users>
+@inject IRoleClient RoleClient
+@inject IPermissionClient PermissionClient
+@attribute [Authorize(Policy = "Role:Read")]
+
+<PageTitle>Admin | Roles &amp; Permissions Management</PageTitle>
+
+<SectionContent SectionName="PageHeading">
+    <MudText Typo="@Typo.h3" HtmlTag="h1">Roles &amp; Permissions Management</MudText>
+</SectionContent>
+
+<SectionContent SectionName="PageActions">
+    <MudButton OnClick="AddRole" StartIcon="@Icons.Material.Filled.Add">Add Role</MudButton>
+</SectionContent>
+
+<MudPaper Class="tw-p-8 tw-space-y-8">
+    @if (_roles is not null)
+    {
+        if (_roles.Any())
+        {
+            <MudExpansionPanels>
+                @foreach (var role in _roles)
+                {
+                    <MudExpansionPanel>
+                        <TitleContent>
+                            <div class="tw-flex tw-flex-row">
+                                <div>
+                                    <MudText Typo="Typo.body1">@role.Description</MudText>
+                                    <code class="tw-code">@role.Name</code>
+                                </div>
+                                @if (!role.Locked)
+                                {
+                                    <AuthorizeView Policy="Role:Update">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="() => EditRole(role)" Color="Color.Dark"/>
+                                    </AuthorizeView>
+                                    <AuthorizeView Policy="Role:Delete">
+                                        <MudSpacer/>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteRole(role.Id)" Color="Color.Dark"/>
+                                    </AuthorizeView>
+                                }
+                            </div>
+                        </TitleContent>
+                        <ChildContent>
+                            <div class="tw-space-y-6">
+                                @foreach (var group in Groups)
+                                {
+                                    <fieldset class="tw-flex tw-space-8 ">
+                                        <MudText Typo="Typo.subtitle1" HtmlTag="legend">@group</MudText>
+                                        @foreach (var permission in _permissions.Where(x => x.StartsWith($"{group}:")))
+                                        {
+                                            <AuthorizeView Policy="Role:ManagePermissions">
+                                                <Authorized>
+                                                    <MudCheckBox
+                                                        Label="@permission.Replace($"{group}:", "")"
+                                                        @bind-Value="_selectedPermissions[role.Id][permission]"
+                                                        Disabled="@(role.Locked)"/>
+                                                </Authorized>
+                                                <NotAuthorized>
+                                                    <MudCheckBox
+                                                        Label="@permission.Replace($"{group}:", "")"
+                                                        @bind-Value="_selectedPermissions[role.Id][permission]"
+                                                        Disabled="true"/>
+                                                </NotAuthorized>
+                                            </AuthorizeView>
+                                        }
+                                    </fieldset>
+                                    <MudDivider DividerType="@DividerType.Middle"/>
+                                }
+                                <AuthorizeView Policy="Role:ManagePermissions">
+                                    @if (!role.Locked)
+                                    {
+                                        <MudButton OnClick="() => SavePermissions(role.Id)">Save</MudButton>
+                                    }
+                                </AuthorizeView>
+                            </div >
+                        </ChildContent >
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No roles found</MudText>
+        }
+    }
+    else
+    {
+        <div class="tw-space-y-4">
+            <MudSkeleton Animation="Animation.Wave" Width="100%" Height="64px"/>
+            <MudSkeleton Animation="Animation.Wave" Width="100%" Height="64px"/>
+            <MudSkeleton Animation="Animation.Wave" Width="100%" Height="64px"/>
+        </div>
+    }
+
+    @if (_totalPages > 1)
+    {
+        <MudDivider DividerType="@DividerType.Middle"/>
+        <Pagination Count="@_totalPages" Size="@Size.Large" CurrentPage="@_currentPage" SelectedChanged="PaginationSelectedChanged"/>
+    }
+</MudPaper>
+
+@code {
+    private const int PageSize = 50;
+    private int _currentPage = 1;
+
+    private List<Role>? _roles;
+    private int _totalPages = 0;
+    private string[] _permissions = [];
+
+    private List<string> Groups =>
+        _permissions.Select(x => x.Split(':')[0])
+            .Distinct()
+            .ToList();
+
+    private Dictionary<Ulid, Dictionary<string, bool>> _selectedPermissions = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += HandleNavigation;
+        GetQueryStringValues();
+
+        await LoadPermissions();
+        await LoadRoles();
+    }
+
+    void GetQueryStringValues()
+    {
+        if (!NavigationManager.TryGetQueryString("page", out _currentPage))
+            _currentPage = 1;
+    }
+
+    private void HandleNavigation(object? sender, LocationChangedEventArgs e)
+    {
+        GetQueryStringValues();
+        StateHasChanged();
+    }
+
+    public override void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleNavigation;
+        base.Dispose();
+    }
+
+    private async Task SavePermissions(Ulid roleId)
+    {
+        try
+        {
+            await RoleClient.UpdatePermissions(roleId,
+                _selectedPermissions[roleId]
+                    .Where(x => x.Value == true)
+                    .Select(x => x.Key)
+                    .ToArray());
+
+            Snackbar.Add($"Permissions updated for {_roles!.FirstOrDefault(x => x.Id == roleId)?.Name}", Severity.Success);
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+        }
+    }
+
+    private async Task AddRole(MouseEventArgs arg)
+    {
+        var addDialog = await DialogService.ShowAsync<AddRoleDialog>("Add new role", GlobalDialogOptions);
+        var result = await addDialog.Result;
+        if (result is {Canceled: false, Data: Role role})
+        {
+            await LoadRoles();
+            Snackbar.Add("Role added successfully", Severity.Success, key: $"RoleCreate-{role.Id}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task EditRole(Role role)
+    {
+        var parameters = new DialogParameters<EditRoleDialog>
+        {
+            {x => x.Role, role}
+        };
+
+        var editDialog = await DialogService.ShowAsync<EditRoleDialog>($"Edit role {role.Name}", parameters, GlobalDialogOptions);
+        var result = await editDialog.Result;
+
+        if (result is {Canceled: false})
+        {
+            await LoadRoles();
+            Snackbar.Add("Role updated successfully", Severity.Success, key: $"RoleEdit-{role.Id}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteRole(Ulid roleId)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            {x => x.Color, Color.Error},
+            {x => x.ButtonText, "Confirm"},
+            {x => x.ContentText, "Are you sure you want to delete this role? This cannot be undone."}
+        };
+        var deleteDialog = await DialogService.ShowAsync<ConfirmDialog>("Delete role?", parameters, GlobalDialogOptions);
+        var result = await deleteDialog.Result;
+        if (result is {Canceled: false})
+        {
+            try
+            {
+                await RoleClient.DeleteAsync(roleId, ComponentDetached);
+                await LoadRoles();
+                Snackbar.Add("Role deleted successfully", Severity.Success, key: $"RoleDelete-{roleId}");
+                StateHasChanged();
+            }
+            catch(ApiResponseException ex)
+            {
+                HandleApiException(ex);
+            }
+        }
+    }
+
+    private async Task LoadPermissions()
+    {
+        try
+        {
+            _permissions = await PermissionClient.GetPermissionsAsync(ComponentDetached);
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+        }
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            var response = await RoleClient.GetAsync(_currentPage, PageSize, null, null, ComponentDetached);
+            _roles = response.Items.ToList();
+            _totalPages = response.TotalPages;
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+        }
+
+        InitialiseSelectedPermissions();
+    }
+
+    private void InitialiseSelectedPermissions()
+    {
+        _selectedPermissions = [];
+        foreach (var role in _roles ?? [])
+        {
+            _selectedPermissions.Add(role.Id, _permissions.ToDictionary(x => x, x => role.Permissions.Contains(x)));
+        }
+    }
+
+    private async Task PaginationSelectedChanged(int page)
+    {
+        NavigationManager.NavigateTo($"/admin/users?page={page}");
+    }
+
+}

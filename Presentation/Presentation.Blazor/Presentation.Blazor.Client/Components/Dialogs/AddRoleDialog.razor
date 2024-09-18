@@ -1,0 +1,71 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using Presentation.Blazor.Client.Services.Api.Models
+@inherits ComponentBase<AddRoleDialog>
+@inject IRoleClient RoleClient
+
+<EditForm Model="@_model" OnValidSubmit="SaveRole">
+    <MudDialog>
+        <DialogContent>
+            <DataAnnotationsValidator/>
+            <MudTextField Label="Role name" @bind-Value="_model.Description" For="@(() => _model.Description)"/>
+            <MudTextField Label="Codename" HelperText="The codename should have no spaces, numbers or special characters and is used by the app to reference the role in user permissions." @bind-Value="_model.Name" For="@(() => _model.Name)"/>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="MudDialog.Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Disabled="_saving" ButtonType="ButtonType.Submit">
+                @if (_saving)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Sync" Class="tw-animate-spin"/>
+                }
+                else
+                {
+                    @:Save
+                }
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+
+    [CascadingParameter]
+    public required MudDialogInstance MudDialog { get; set; }
+    
+    private bool _saving;
+
+    private AddRoleForm _model = new();
+
+    private async Task SaveRole(EditContext editContext)
+    {
+        _saving = true;
+        var model = (AddRoleForm)editContext.Model;
+
+        try
+        {
+            var role = await RoleClient.CreateAsync(new CreateRoleRequest(model.Name, model.Description));
+            MudDialog.Close(DialogResult.Ok(role));
+        }
+        catch (ApiResponseException ex)
+        {
+            HandleApiException(ex);
+            _saving = false;
+        }
+        finally
+        {
+            _saving = false;   
+        }
+    }
+
+    class AddRoleForm
+    {
+        [Required]
+        [Display(Name = "Role display name")]
+        public string Description { get; set; }
+
+        [Required]
+        [Display(Name = "Code name")]
+        [RegularExpression("[A-Za-z]+", ErrorMessage = "Name must contain only letters and no spaces")]
+        public string Name { get; set; }
+    }
+
+}
